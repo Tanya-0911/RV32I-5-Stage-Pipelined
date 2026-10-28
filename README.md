@@ -16,11 +16,6 @@
 </p>
 
 ---
-
-# RV32I 5-Stage Pipelined RISC-V Processor
-
-**RTL Design | SystemVerilog | Computer Architecture | Functional Verification | Logic Synthesis**
-
 A 32-bit, five-stage pipelined RISC-V processor implemented in SystemVerilog, with a focus on instruction execution, pipeline control, data dependencies, and digital hardware verification.
 
 This project explores how processor architecture translates into synthesizable RTL, from instruction decoding and ALU operations to pipeline stalls, control-flow redirection, simulation, and logic synthesis.
