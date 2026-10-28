@@ -279,6 +279,35 @@ The project is a work in progress, with several opportunities for deeper verific
 - Explore FPGA implementation if suitable hardware is available.
 
 ## What This Project Explores
+This project provides hands-on experience with several core digital-design concepts:
+
+Processor datapath development
+
+Pipelined microarchitecture
+
+SystemVerilog RTL design
+
+Instruction decoding and execution
+
+ALU and register-file design
+
+Data and control hazards
+
+Functional verification and waveform debugging
+
+Logic synthesis and structural analysis
+
+Hardware project organization and version control
+
+The emphasis is on understanding the relationship between processor architecture, RTL behavior, and the resulting hardware structure.
+
+About
+
+I'm an Electronics(VLSI Design and Technology) Engineering student, interested in digital hardware design, processor architecture, RTL development, and verification.
+
+This project is part of my exploration of processor microarchitecture and synthesizable digital systems, with a focus on building a stronger foundation for RTL design and verification engineering.
+
+
 <p align="center">
   <b>Built with SystemVerilog. Verified through simulation. Synthesized with Yosys.</b>
 </p>
