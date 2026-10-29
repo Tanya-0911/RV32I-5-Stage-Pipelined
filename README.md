@@ -16,190 +16,186 @@
 </p>
 
 ---
-A 32-bit, five-stage pipelined RISC-V processor implemented in SystemVerilog, with a focus on instruction execution, pipeline control, data dependencies, and digital hardware verification.
 
-This project explores how processor architecture translates into synthesizable RTL, from instruction decoding and ALU operations to pipeline stalls, control-flow redirection, simulation, and logic synthesis.
+## Table of Contents
 
-## Project Overview
+- [1. Project Overview](#1-project-overview)
+- [2. Processor Architecture](#2-processor-architecture)
+- [3. Five-Stage Pipeline](#3-five-stage-pipeline)
+- [4. Implemented Features](#4-implemented-features)
+- [5. Supported Instructions](#5-supported-instructions)
+- [6. Repository Structure](#6-repository-structure)
+- [7. Tools and Technologies](#7-tools-and-technologies)
+- [8. Simulation and Verification](#8-simulation-and-verification)
+- [9. Logic Synthesis](#9-logic-synthesis)
+- [10. Waveform Analysis](#10-waveform-analysis)
+- [11. Current Limitations](#11-current-limitations)
+- [12. Future Improvements](#12-future-improvements)
+- [13. Learning Outcomes](#13-learning-outcomes)
 
-The goal of this project is to develop a practical understanding of processor microarchitecture by implementing a pipelined CPU based on the RISC-V instruction set.
+## 1. Project Overview
 
-Instead of executing an entire instruction in one cycle, the processor divides instruction execution into five stages. This allows multiple instructions to occupy different stages of the pipeline simultaneously.
+This project implements a 32-bit RISC-V CPU using SystemVerilog and a five-stage pipeline.
 
-The implementation includes a register file, arithmetic and logic operations, branch and jump handling, word-level memory operations, and pipeline control logic.
+The main objective is to understand how a processor executes instructions, manages data dependencies, performs arithmetic and logical operations, handles control-flow changes, and communicates with instruction and data memories.
 
-I use **SystemVerilog for RTL development, Icarus Verilog for functional simulation, and Yosys for synthesis and structural checks.**
+The processor is verified using Icarus Verilog testbenches. Yosys is used to check the RTL structure and synthesize the design into a generic gate-level representation.
 
-### Key Features
+### Project Highlights
 
-- 32-bit processor datapath based on the RISC-V architecture
-- Five-stage instruction pipeline
-- Register file with 32 architectural registers
-- Arithmetic, logical, comparison, and shift operations
-- Conditional branches and jump instructions
-- Immediate generation and upper-immediate instructions
-- Word-level load and store operations
-- Load-use stall handling and control-flow redirection
-- Directed testbenches for functional verification
-- Synthesis flow using Yosys
+- 32-bit RISC-V datapath
+- Five-stage processor pipeline
+- Arithmetic and logical execution unit
+- Conditional branch and jump control
+- Register file containing 32 architectural registers
+- Word load and store operations
+- Pipeline stall and control-flow handling
+- Directed functional verification
+- RTL synthesis and structural checks
 
-> **Project scope:** This is an educational pipelined processor implementation. The supported instruction set and verification coverage are limited to the functionality implemented and tested in the RTL.
+> **Project status:** The processor RTL, directed simulation tests, and Yosys synthesis flow have been exercised successfully. Full RV32I compliance and FPGA hardware validation have not been established.
 
-## Processor Architecture
+## 2. Processor Architecture
 
-The processor follows a conventional five-stage pipeline.
+The processor is divided into five pipeline stages. Each stage performs a different part of instruction execution.
 
-| Stage | Name | Function |
-|---|---|---|
-| IF | Instruction Fetch | Fetches the instruction using the program counter |
-| ID | Instruction Decode | Decodes instruction fields and reads source registers |
-| EX | Execute | Performs ALU operations, calculates addresses, and evaluates branches |
-| MEM | Memory Access | Handles supported data-memory operations |
-| WB | Write Back | Writes the selected result to the destination register |
+### High-Level Architecture
 
-### Architecture at a Glance
+```mermaid
+flowchart TD
+    A["Program Counter"] --> B["Instruction Fetch"]
+    B --> C["Instruction Decode"]
+    C --> D["Register File"]
+    D --> E["Execute and ALU"]
+    E --> F["Memory Access"]
+    F --> G["Write Back"]
+    G --> D
+    E --> H["Branch and Jump Control"]
+    H --> A
+```
 
-The main components include:
+### Main Components
 
-- **Program Counter:** Tracks instruction addresses and handles control-flow redirection.
-- **Instruction Decode:** Extracts instruction fields and generates immediate values.
-- **Register File:** Provides source operands and stores architectural register values.
-- **Arithmetic Logic Unit:** Performs arithmetic, logical, shift, and comparison operations.
-- **Pipeline Control:** Coordinates stalls, valid instructions, and branch or jump redirection.
-- **Memory Interface:** Connects the processor to externally provided instruction and data memories.
-- **Write-Back Logic:** Selects the result returned to the register file.
+| Component | Responsibility |
+|---|---|
+| Program Counter | Tracks the address of the next instruction |
+| Instruction Fetch | Retrieves instructions from instruction memory |
+| Instruction Decode | Decodes opcodes, extracts operands, and generates immediates |
+| Register File | Stores and supplies architectural register values |
+| Arithmetic Logic Unit | Executes arithmetic, logical, comparison, and shift operations |
+| Branch and Jump Control | Determines whether execution redirects to another address |
+| Memory Interface | Provides data-memory addresses, write data, and write-enable control |
+| Write-Back Logic | Selects the result written to the destination register |
 
-The instruction and data memories are external to the processor core, allowing the surrounding system or testbench to provide the required memory behavior.
+Instruction and data memories are provided externally through the processor's module interface.
 
-## Implemented Instruction Support
+## 3. Five-Stage Pipeline
 
-The current RTL supports selected instructions from the RV32I base integer instruction set.
+The design follows the classic five-stage processor pipeline.
 
-### Arithmetic and Logical Operations
+```mermaid
+flowchart LR
+    IF["IF<br/>Instruction Fetch"] --> ID["ID<br/>Instruction Decode"]
+    ID --> EX["EX<br/>Execute"]
+    EX --> MEM["MEM<br/>Memory Access"]
+    MEM --> WB["WB<br/>Write Back"]
+```
 
-- `ADD`, `SUB`
-- `AND`, `OR`, `XOR`
-- `SLT`, `SLTU`
-- `SLL`, `SRL`, `SRA`
+### Pipeline Stage Details
 
-### Immediate Operations
+**Stage 1: Instruction Fetch (IF)**
 
-- `ADDI`
-- `ANDI`, `ORI`, `XORI`
-- `SLTI`, `SLTIU`
-- `SLLI`, `SRLI`, `SRAI`
+- Uses the program counter to identify the current instruction address.
+- Receives the instruction from instruction memory.
+- Advances the program counter when execution is not stalled or redirected.
 
-### Control Flow
+**Stage 2: Instruction Decode (ID)**
 
-- `BEQ`, `BNE`
-- `BLT`, `BGE`
-- `BLTU`, `BGEU`
-- `JAL`, `JALR`
+- Decodes the instruction fields.
+- Reads source register values.
+- Generates immediate values for supported instruction formats.
+
+**Stage 3: Execute (EX)**
+
+- Performs arithmetic and logical operations.
+- Calculates memory addresses.
+- Evaluates conditional branches.
+- Calculates jump targets.
+
+**Stage 4: Memory Access (MEM)**
+
+- Interfaces with the external data memory.
+- Supports the currently implemented word load and store operations.
+
+**Stage 5: Write Back (WB)**
+
+- Selects the result returned to the architectural register file.
+- Writes results to the destination register when register-write control is enabled.
+- Maintains register `x0` as zero.
+
+### Pipeline Control
+
+The RTL includes pipeline-valid signals, load-use stall handling, and control-flow redirection for supported branches and jumps.
+
+A taken branch or jump can redirect instruction fetching and invalidate younger instructions in the pipeline.
+
+## 4. Implemented Features
+
+| Feature | Implementation |
+|---|---|
+| Datapath width | 32 bits |
+| Architectural registers | 32 |
+| Register `x0` | Hardwired to zero |
+| Pipeline stages | 5 |
+| Arithmetic operations | Addition and subtraction |
+| Logical operations | AND, OR, XOR |
+| Shift operations | Logical and arithmetic shifts |
+| Comparisons | Signed and unsigned comparisons |
+| Branches | Equality, inequality, signed and unsigned comparisons |
+| Jumps | JAL and JALR |
+| Upper immediates | LUI and AUIPC |
+| Memory operations | LW and SW |
+| Verification | Directed SystemVerilog testbenches |
+| Synthesis | Yosys |
+
+## 5. Supported Instructions
+
+The RTL includes support for the following instruction groups. This table describes implemented groups, not a claim of complete architectural compliance.
+
+### Arithmetic and Logical Instructions
+
+- ADD, SUB
+- AND, OR, XOR
+- SLT, SLTU
+- SLL, SRL, SRA
+
+### Immediate Instructions
+
+- ADDI
+- ANDI, ORI, XORI
+- SLTI, SLTIU
+- SLLI, SRLI, SRAI
+
+### Control-Flow Instructions
+
+- BEQ, BNE
+- BLT, BGE
+- BLTU, BGEU
+- JAL, JALR
 
 ### Upper-Immediate Instructions
 
-- `LUI`
-- `AUIPC`
+- LUI
+- AUIPC
 
-### Memory Operations
+### Memory Instructions
 
-- `LW` — Load Word
-- `SW` — Store Word
+- LW: Load Word
+- SW: Store Word
 
-Byte and halfword memory operations are not yet implemented in the documented load/store datapath. Support for the listed instructions should not be interpreted as complete RV32I compliance.
+Byte and halfword load/store instructions remain future improvements.
 
-## Pipeline Control and Hazard Handling
-
-One of the important aspects of a pipelined processor is maintaining correct execution when instructions depend on one another.
-
-The implementation includes pipeline-valid signals, load-use stall handling, and control-flow redirection.
-
-The main areas of interest are:
-
-- **Data dependencies:** Handling situations in which an instruction requires a result produced by an earlier instruction.
-- **Load-use hazards:** Managing dependencies involving values loaded from data memory.
-- **Control hazards:** Preventing younger instructions from executing incorrectly after a taken branch or jump.
-- **Pipeline validity:** Tracking which instructions should be considered valid as execution progresses.
-
-These mechanisms are important because incorrect pipeline control can produce errors even when the individual ALU and register-file components work correctly.
-
-## Verification and Simulation
-
-Functional verification is performed using SystemVerilog testbenches and Icarus Verilog.
-
-The existing testbenches exercise selected processor operations, including:
-
-- Arithmetic and logical execution
-- Register write-back and zero-register behavior
-- Word load and store operations
-- Load-use behavior
-- Conditional branch decisions
-- `JAL` and `JALR` control flow
-- Selected pipeline flush scenarios
-
-The testbench reports expected and observed values and provides pass/fail results for the checks it implements.
-
-### Run the Simulation
-
-Run the following commands from the repository root in a WSL/Linux terminal:
-
-```bash
-chmod +x run_sim.sh
-./run_sim.sh
-```
-
-The supplied script runs the configured simulation flow. The actual results should be checked against the testbench output.
-
-A passing directed test indicates that the corresponding checks succeeded; it does not establish exhaustive correctness or complete instruction-set compliance.
-
-## Waveform Debugging
-
-Simulation waveforms provide a way to inspect how instructions progress through the pipeline and how control signals respond to different instructions.
-
-The testbenches generate VCD files when configured to do so.
-
-For example:
-
-```bash
-gtkwave sim/rv32i_control.vcd
-```
-
-Useful signals to inspect include:
-
-- `pc`
-- `imem_addr`
-- `idex_instr`
-- `ex_alu_result`
-- `dmem_addr`
-- `dmem_wdata`
-- `dmem_we`
-- Pipeline-valid and stall signals
-
-Waveform inspection is particularly useful for debugging register dependencies, memory accesses, pipeline stalls, and branch or jump redirection.
-
-## RTL Synthesis with Yosys
-
-The processor uses Yosys to process the RTL and generate a synthesized representation of the design.
-
-Run:
-
-```bash
-yosys -s synth_run_yosys.ys
-```
-
-The configured synthesis flow includes RTL processing, optimization, structural checks, and generation of a JSON representation.
-
-The expected output path is:
-
-```text
-synth/rv32i_core.json
-```
-
-Synthesis provides an additional way to inspect the hardware structure inferred from the RTL.
-
-Generic synthesis results should not be confused with final ASIC area, FPGA resource utilization, or measured operating frequency. Those require appropriate target-specific implementation and analysis.
-
-## Repository Structure
+## 6. Repository Structure
 
 ```text
 RV32I-5-Stage-Pipelined-CPU/
@@ -224,91 +220,168 @@ RV32I-5-Stage-Pipelined-CPU/
 └── README.md
 ```
 
-## Tools and Technologies
+Generated simulation and synthesis files are excluded by the current `.gitignore` patterns. They can be regenerated using the supplied scripts.
 
-| Technology | Application |
+## 7. Tools and Technologies
+
+| Tool | Purpose |
 |---|---|
-| SystemVerilog | Processor RTL implementation |
-| Icarus Verilog | Simulation and functional testing |
-| GTKWave | Waveform inspection and debugging |
-| Yosys | Logic synthesis and structural checks |
-| Visual Studio Code | RTL development |
-| WSL/Linux | Open-source hardware development environment |
-| Git and GitHub | Version control and project documentation |
+| SystemVerilog | RTL implementation |
+| Icarus Verilog | Compilation and simulation |
+| GTKWave | Viewing simulation waveforms |
+| Yosys | RTL synthesis and structural checking |
+| Visual Studio Code | Development environment |
+| WSL/Linux | Running the open-source hardware tools |
+| Git and GitHub | Version control and project publication |
 
-## Current Limitations
+## 8. Simulation and Verification
 
-The project is a work in progress, with several opportunities for deeper verification and further hardware development.
+The project includes directed testbenches for checking processor behavior.
 
-- Complete RV32I compliance has not been established.
-- Byte and halfword load/store operations remain future work.
-- Broader randomized and formal verification has not been completed.
-- FPGA implementation and board-level validation have not been performed.
-- Target-specific timing analysis and ASIC physical design have not been completed.
-- Interrupts, exceptions, caches, and a complete peripheral subsystem are outside the current implementation.
+### Test Coverage
 
-## Planned Improvements
+The existing tests exercise:
 
-### 1. Verification and Reliability
+- Register initialization and zero-register behavior
+- Arithmetic and logical operations
+- Register write-back
+- Word load and store operations
+- Load-use behavior
+- Conditional branch decisions
+- JAL and JALR control flow
+- Flushing of selected instructions after redirects
 
-- Expand tests for consecutive dependent instructions.
-- Investigate and verify forwarding behavior across pipeline stages.
-- Add directed tests for load-use hazards and control-flow corner cases.
-- Introduce automated regression tests and stronger result checking.
-- Compare processor behavior against a trusted reference model where practical.
+### Running the Tests
 
-### 2. Instruction Set Expansion
+Open a WSL/Linux terminal in the repository root.
 
-- Add byte and halfword load/store instructions.
-- Improve coverage across supported instruction encodings.
-- Validate immediate generation, signed arithmetic, and branch conditions.
+```bash
+chmod +x run_sim.sh
+./run_sim.sh
+```
 
-### 3. Performance Analysis
+The testbench prints the expected and observed register values and reports pass/fail results.
 
-- Measure instruction throughput and cycles per instruction.
-- Investigate pipeline stalls and control-hazard penalties.
-- Examine synthesis statistics and timing under a defined target flow.
-- Compare the pipelined design with a suitable baseline implementation.
+### Recorded Verification Result
 
-### 4. Hardware System Integration
+The directed control-flow test completed with:
 
-- Integrate instruction and data RAM.
-- Add a memory-mapped address decoder.
-- Develop UART and GPIO peripherals.
-- Execute small assembly programs on the integrated system.
-- Explore FPGA implementation if suitable hardware is available.
+```text
+ALL TESTS PASSED
+```
 
-## What This Project Explores
-This project provides hands-on experience with several core digital-design concepts:
+This result applies to the tests implemented in the current testbench. It is not a substitute for comprehensive instruction-level, randomized, or formal verification.
 
-Processor datapath development
+## 9. Logic Synthesis
 
-Pipelined microarchitecture
+The design uses Yosys to check the RTL and synthesize the processor.
 
-SystemVerilog RTL design
+Run:
 
-Instruction decoding and execution
+```bash
+yosys -s synth_run_yosys.ys
+```
 
-ALU and register-file design
+The script performs operations including:
 
-Data and control hazards
+1. Reading the SystemVerilog RTL.
+2. Checking the module hierarchy.
+3. Converting processes into logic.
+4. Optimizing the design.
+5. Running structural checks.
+6. Synthesizing the design.
+7. Exporting the synthesized design as JSON.
 
-Functional verification and waveform debugging
+### Synthesis Output
 
-Logic synthesis and structural analysis
+The configured synthesis script writes:
 
-Hardware project organization and version control
+```text
+synth/rv32i_core.json
+```
 
-The emphasis is on understanding the relationship between processor architecture, RTL behavior, and the resulting hardware structure.
+The synthesis log is useful for examining warnings, cell statistics, and structural checks.
 
-About
+**Important:** Generic Yosys cell statistics are not equivalent to FPGA LUT utilization, final ASIC standard-cell area, or measured silicon performance. Those require an appropriate target technology and implementation flow.
 
-I'm an Electronics(VLSI Design and Technology) Engineering student, interested in digital hardware design, processor architecture, RTL development, and verification.
+## 10. Waveform Analysis
 
-This project is part of my exploration of processor microarchitecture and synthesizable digital systems, with a focus on building a stronger foundation for RTL design and verification engineering.
+The testbenches generate Value Change Dump (VCD) files for simulation analysis.
 
+For example, if the control test has generated the corresponding waveform:
+
+```bash
+gtkwave sim/rv32i_control.vcd
+```
+
+Useful signals to inspect include:
+
+- `pc`
+- `imem_addr`
+- `idex_instr`
+- `ex_alu_result`
+- `dmem_addr`
+- `dmem_wdata`
+- `dmem_we`
+- Pipeline-valid and stall signals
+
+Waveform analysis helps identify instruction progression, register dependencies, memory transactions, and branch redirection.
+
+## 11. Current Limitations
+
+This project is an educational processor implementation and is still open to further verification and improvement.
+
+- Only word loads and stores are currently implemented in the load/store datapath.
+- Complete RV32I compliance has not been demonstrated.
+- Comprehensive randomized and formal verification has not been completed.
+- FPGA board validation has not been performed.
+- Timing closure and ASIC physical design have not been completed.
+- Interrupts, exceptions, caches, and a complete peripheral subsystem are not yet part of the design.
+
+## 12. Future Improvements
+
+The next development stages can expand this processor into a more complete digital system.
+
+### Processor Improvements
+
+- Implement LB, LH, LBU, LHU, SB, and SH.
+- Expand tests for data hazards and control hazards.
+- Add broader instruction-level verification.
+- Measure CPI and analyze pipeline performance.
+
+### System-on-Chip Development
+
+- Integrate the CPU with RAM.
+- Add a memory-mapped bus and address decoder.
+- Implement UART communication.
+- Add GPIO and a timer peripheral.
+- Run small assembly programs on the integrated system.
+
+### ASIC Design Exploration
+
+- Explore technology-mapped synthesis.
+- Add static timing analysis.
+- Explore floorplanning, placement, and routing using an open-source ASIC flow.
+- Document area and timing results for a specified technology.
+
+## 13. Learning Outcomes
+
+This project provides hands-on experience with:
+
+- Processor datapath design
+- SystemVerilog RTL development
+- Instruction decoding
+- Pipeline architecture
+- ALU implementation
+- Branch and jump control
+- Hazard handling
+- Testbench development
+- Simulation waveform analysis
+- Logic synthesis and structural verification
+- Version control for hardware projects
+
+---
 
 <p align="center">
   <b>Built with SystemVerilog. Verified through simulation. Synthesized with Yosys.</b>
 </p>
-
