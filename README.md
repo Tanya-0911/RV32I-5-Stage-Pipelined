@@ -325,6 +325,9 @@ Useful signals to inspect include:
 - `dmem_we`
 - Pipeline-valid and stall signals
 
+<img width="767" height="234" alt="1792384998944" src="https://github.com/user-attachments/assets/24cf71c1-604d-4133-9446-a604188ac352" />
+
+
 Waveform analysis helps identify instruction progression, register dependencies, memory transactions, and branch redirection.
 
 ## 11. Current Limitations
